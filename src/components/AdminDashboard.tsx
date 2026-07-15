@@ -3,6 +3,7 @@ import {
   ShieldAlert, LogIn, LayoutDashboard, FileSpreadsheet, MessageSquare, 
   Settings, CheckCircle2, Trash2, LogOut, Save
 } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
 
 
 interface AdminDashboardProps {
@@ -28,6 +29,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
   // Local storage loaded lists
   const [quotes, setQuotes] = useState<any[]>([]);
   const [inquiries, setInquiries] = useState<any[]>([]);
+  const [adminCreds, setAdminCreds] = useState({ user: 'admin', pass: 'password123' });
 
   // Landing Page editable values
   const [heroTitle, setHeroTitle] = useState(
@@ -57,6 +59,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
     };
   }, [isOpen]);
 
+  // Load credentials from database if available
+  useEffect(() => {
+    const fetchDbCredentials = async () => {
+      if (!supabase || !isOpen) return;
+      try {
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .select('value')
+          .eq('key', 'admin_credentials')
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching admin credentials:', error);
+          return;
+        }
+
+        if (data && data.value) {
+          setAdminCreds({ user: data.value.user, pass: data.value.pass });
+        } else if (!data) {
+          // Initialize/seed settings table with default credentials
+          await supabase
+            .from('admin_settings')
+            .insert({ key: 'admin_credentials', value: { user: 'admin', pass: 'password123' } });
+        }
+      } catch (err) {
+        console.error('Failed to load database credentials:', err);
+      }
+    };
+    fetchDbCredentials();
+  }, [isOpen]);
+
   const loadLocalStorageData = () => {
     const localQuotes = JSON.parse(localStorage.getItem('ep_quotes') || '[]');
     const localInquiries = JSON.parse(localStorage.getItem('ep_inquiries') || '[]');
@@ -65,6 +98,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
   };
 
   const getStoredCredentials = () => {
+    if (supabase) {
+      return adminCreds;
+    }
     const storedUser = localStorage.getItem('ep_admin_user') || 'admin';
     const storedPass = localStorage.getItem('ep_admin_pass') || 'password123';
     return { user: storedUser, pass: storedPass };
@@ -83,7 +119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
     }
   };
 
-  const handleChangeCredentialsSubmit = (e: React.FormEvent) => {
+  const handleChangeCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const creds = getStoredCredentials();
     if (currentUsernameInput === creds.user && currentPasswordInput === creds.pass) {
@@ -91,8 +127,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
         onToast('New username and password cannot be empty.');
         return;
       }
-      localStorage.setItem('ep_admin_user', newUsernameInput);
-      localStorage.setItem('ep_admin_pass', newPasswordInput);
+      
+      if (supabase) {
+        try {
+          const { error } = await supabase
+            .from('admin_settings')
+            .upsert({ key: 'admin_credentials', value: { user: newUsernameInput, pass: newPasswordInput } });
+
+          if (error) {
+            onToast('Database error: Failed to update credentials.');
+            console.error(error);
+            return;
+          }
+          setAdminCreds({ user: newUsernameInput, pass: newPasswordInput });
+        } catch (err) {
+          onToast('Failed to update credentials in backend database.');
+          console.error(err);
+          return;
+        }
+      } else {
+        localStorage.setItem('ep_admin_user', newUsernameInput);
+        localStorage.setItem('ep_admin_pass', newPasswordInput);
+      }
+      
       onToast('Admin credentials updated successfully!');
       
       setCurrentUsernameInput('');
