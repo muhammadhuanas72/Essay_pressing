@@ -3082,6 +3082,6 @@ textarea.form-control {
     max-height: 90px;
   }
   .loading-logo-container {
-    margin-top: -18vh; /* Shift more upwards on mobile screens */
+    margin-top: -15vh; /* Shift more upwards on mobile screens */
   }
 }
