@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Send, FileText } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
+
 
 interface QuoteFormProps {
   isOpen: boolean;
@@ -44,50 +46,86 @@ export const QuoteForm: React.FC<QuoteFormProps> = ({ isOpen, onClose, onToast, 
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.quantity) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      // Save quotation request submission to local storage to simulate a database
-      const existingQuotes = JSON.parse(localStorage.getItem('ep_quotes') || '[]');
-      const newQuote = {
-        id: 'RFQ-' + Math.floor(100000 + Math.random() * 900000).toString(),
-        name: formData.name,
-        company: formData.company,
-        email: formData.email,
-        phone: formData.phone,
-        category: formData.category,
-        quantity: formData.quantity,
-        material: formData.material,
-        specifications: formData.specifications,
-        message: formData.message,
-        fileName: fileName || 'None attached',
-        timestamp: new Date().toLocaleString(),
-        status: 'Pending'
-      };
-      localStorage.setItem('ep_quotes', JSON.stringify([newQuote, ...existingQuotes]));
+    
+    const newQuote = {
+      id: 'RFQ-' + Math.floor(100000 + Math.random() * 900000).toString(),
+      name: formData.name,
+      company: formData.company,
+      email: formData.email,
+      phone: formData.phone,
+      category: formData.category,
+      quantity: formData.quantity,
+      material: formData.material,
+      specifications: formData.specifications,
+      message: formData.message,
+      fileName: fileName || 'None attached',
+      timestamp: new Date().toLocaleString(),
+      status: 'Pending'
+    };
 
-      // Alert notification for Admin
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_quotes')
+          .insert({
+            id: newQuote.id,
+            name: newQuote.name,
+            company: newQuote.company,
+            email: newQuote.email,
+            phone: newQuote.phone,
+            category: newQuote.category,
+            quantity: newQuote.quantity,
+            material: newQuote.material,
+            specifications: newQuote.specifications,
+            message: newQuote.message,
+            file_name: newQuote.fileName,
+            timestamp: newQuote.timestamp,
+            status: newQuote.status
+          });
+
+        if (error) {
+          console.error('Error inserting quote to Supabase:', error);
+          onToast('Database error: Failed to save quote request.');
+          setSubmitting(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to submit quote request to database:', err);
+        onToast('Failed to save quote request to backend database.');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // Save quotation request submission to local storage to simulate a database
+    const existingQuotes = JSON.parse(localStorage.getItem('ep_quotes') || '[]');
+    localStorage.setItem('ep_quotes', JSON.stringify([newQuote, ...existingQuotes]));
+
+    // Alert notification for Admin
+    if (!supabase) {
       alert(`[Admin Alert] New RFQ/Quote Request Received!\n\nID: ${newQuote.id}\nName: ${newQuote.name}\nCompany: ${newQuote.company || 'N/A'}\nCategory: ${newQuote.category}\nQuantity: ${newQuote.quantity} units\nMaterial: ${newQuote.material}`);
+    }
 
-      setSubmitting(false);
-      setFileName('');
-      setFormData({
-        name: '',
-        company: '',
-        email: '',
-        phone: '',
-        category: 'Metal Washers',
-        quantity: '',
-        material: 'Stainless Steel 304',
-        specifications: '',
-        message: ''
-      });
-      onToast(lang === 'en' ? 'Quote Request submitted successfully!' : 'விலைப்புள்ளி கோரிக்கை சமர்ப்பிக்கப்பட்டது!');
-      onClose();
-    }, 1200);
+    setSubmitting(false);
+    setFileName('');
+    setFormData({
+      name: '',
+      company: '',
+      email: '',
+      phone: '',
+      category: 'Metal Washers',
+      quantity: '',
+      material: 'Stainless Steel 304',
+      specifications: '',
+      message: ''
+    });
+    onToast(lang === 'en' ? 'Quote Request submitted successfully!' : 'விலைப்புள்ளி கோரிக்கை சமர்ப்பிக்கப்பட்டது!');
+    onClose();
   };
 
   const categories = [

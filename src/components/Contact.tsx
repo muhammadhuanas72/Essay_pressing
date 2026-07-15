@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, User, Clock, Send } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
 
 interface ContactProps {
   lang: 'en' | 'ta';
@@ -18,32 +19,62 @@ export const Contact: React.FC<ContactProps> = ({ lang, onToast }) => {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
 
     setSubmitting(true);
-    setTimeout(() => {
-      // Save query submission to local storage to simulate a database
-      const existingInquiries = JSON.parse(localStorage.getItem('ep_inquiries') || '[]');
-      const newInquiry = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        message: formData.message,
-        timestamp: new Date().toLocaleString(),
-        status: 'Unread'
-      };
-      localStorage.setItem('ep_inquiries', JSON.stringify([newInquiry, ...existingInquiries]));
+    
+    const newInquiry = {
+      id: Date.now().toString(),
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      message: formData.message,
+      timestamp: new Date().toLocaleString(),
+      status: 'Unread'
+    };
 
-      // Alert notification for Admin
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_inquiries')
+          .insert({
+            id: newInquiry.id,
+            name: newInquiry.name,
+            email: newInquiry.email,
+            phone: newInquiry.phone,
+            message: newInquiry.message,
+            timestamp: newInquiry.timestamp,
+            status: newInquiry.status
+          });
+
+        if (error) {
+          console.error('Error inserting inquiry to Supabase:', error);
+          onToast('Database error: Failed to save inquiry.');
+          setSubmitting(false);
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to submit inquiry to database:', err);
+        onToast('Failed to save inquiry to backend database.');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // Save query submission to local storage to simulate a database
+    const existingInquiries = JSON.parse(localStorage.getItem('ep_inquiries') || '[]');
+    localStorage.setItem('ep_inquiries', JSON.stringify([newInquiry, ...existingInquiries]));
+
+    // Alert notification for Admin
+    if (!supabase) {
       alert(`[Admin Alert] New Enquiry Received!\n\nName: ${newInquiry.name}\nEmail: ${newInquiry.email}\nPhone: ${newInquiry.phone || 'N/A'}\nMessage: ${newInquiry.message}`);
+    }
 
-      setSubmitting(false);
-      setFormData({ name: '', email: '', phone: '', message: '' });
-      onToast(lang === 'en' ? 'Enquiry submitted successfully!' : 'விசாரணை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!');
-    }, 1000);
+    setSubmitting(false);
+    setFormData({ name: '', email: '', phone: '', message: '' });
+    onToast(lang === 'en' ? 'Enquiry submitted successfully!' : 'விசாரணை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது!');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

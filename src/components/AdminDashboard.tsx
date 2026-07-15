@@ -3,6 +3,8 @@ import {
   ShieldAlert, LogIn, LayoutDashboard, FileSpreadsheet, MessageSquare, 
   Settings, CheckCircle2, Trash2, LogOut, Save
 } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
+
 
 
 interface AdminDashboardProps {
@@ -58,30 +60,71 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
     };
   }, [isOpen]);
 
-  // Load credentials from shared database on modal open
+  // Load credentials from database or local storage on modal open
   useEffect(() => {
-    const fetchDbCredentials = async () => {
+    const fetchCredentials = async () => {
       if (!isOpen) return;
-      try {
-        const response = await fetch('https://jsonblob.com/api/jsonBlob/019f6463-4ea7-7291-98a2-dd42a0e81ab9');
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.user && data.pass) {
-            setAdminCreds({ user: data.user, pass: data.pass });
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('admin_settings')
+            .select('value')
+            .eq('key', 'admin_credentials')
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error fetching admin credentials from Supabase:', error);
+            return;
           }
+
+          if (data && data.value) {
+            setAdminCreds({ user: data.value.user, pass: data.value.pass });
+          } else if (!data) {
+            // Seed settings table with default credentials if empty
+            await supabase
+              .from('admin_settings')
+              .insert({ key: 'admin_credentials', value: { user: 'admin', pass: 'password123' } });
+          }
+        } catch (err) {
+          console.error('Failed to load database credentials:', err);
         }
-      } catch (err) {
-        console.error('Failed to load database credentials:', err);
+      } else {
+        // Fallback to local storage credentials
+        const storedUser = localStorage.getItem('ep_admin_user') || 'admin';
+        const storedPass = localStorage.getItem('ep_admin_pass') || 'password123';
+        setAdminCreds({ user: storedUser, pass: storedPass });
       }
     };
-    fetchDbCredentials();
+    fetchCredentials();
   }, [isOpen]);
 
-  const loadLocalStorageData = () => {
-    const localQuotes = JSON.parse(localStorage.getItem('ep_quotes') || '[]');
-    const localInquiries = JSON.parse(localStorage.getItem('ep_inquiries') || '[]');
-    setQuotes(localQuotes);
-    setInquiries(localInquiries);
+  const loadLocalStorageData = async () => {
+    if (supabase) {
+      try {
+        const { data: dbQuotes, error: quotesErr } = await supabase
+          .from('ep_quotes')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        const { data: dbInquiries, error: inquiriesErr } = await supabase
+          .from('ep_inquiries')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (quotesErr) console.error('Error loading quotes from Supabase:', quotesErr);
+        else if (dbQuotes) setQuotes(dbQuotes);
+
+        if (inquiriesErr) console.error('Error loading inquiries from Supabase:', inquiriesErr);
+        else if (dbInquiries) setInquiries(dbInquiries);
+      } catch (err) {
+        console.error('Error calling Supabase data loading:', err);
+      }
+    } else {
+      const localQuotes = JSON.parse(localStorage.getItem('ep_quotes') || '[]');
+      const localInquiries = JSON.parse(localStorage.getItem('ep_inquiries') || '[]');
+      setQuotes(localQuotes);
+      setInquiries(localInquiries);
+    }
   };
 
   const getStoredCredentials = () => {
@@ -110,24 +153,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
         return;
       }
       
-      try {
-        const response = await fetch('https://jsonblob.com/api/jsonBlob/019f6463-4ea7-7291-98a2-dd42a0e81ab9', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ user: newUsernameInput, pass: newPasswordInput }),
-        });
+      if (supabase) {
+        try {
+          const { error } = await supabase
+            .from('admin_settings')
+            .upsert({ key: 'admin_credentials', value: { user: newUsernameInput, pass: newPasswordInput } });
 
-        if (!response.ok) {
-          onToast('Database error: Failed to update credentials.');
+          if (error) {
+            onToast('Database error: Failed to update credentials.');
+            console.error(error);
+            return;
+          }
+          setAdminCreds({ user: newUsernameInput, pass: newPasswordInput });
+        } catch (err) {
+          onToast('Failed to update credentials in backend database.');
+          console.error(err);
           return;
         }
+      } else {
+        localStorage.setItem('ep_admin_user', newUsernameInput);
+        localStorage.setItem('ep_admin_pass', newPasswordInput);
         setAdminCreds({ user: newUsernameInput, pass: newPasswordInput });
-      } catch (err) {
-        onToast('Failed to update credentials in backend database.');
-        console.error(err);
-        return;
       }
       
       onToast('Admin credentials updated successfully!');
@@ -152,28 +198,100 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
     setActiveTab('dashboard');
   };
 
-  const handleUpdateStatusQuote = (id: string) => {
+  const handleUpdateStatusQuote = async (id: string) => {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_quotes')
+          .update({ status: 'Completed' })
+          .eq('id', id);
+        if (error) {
+          onToast('Database error: Failed to update status.');
+          console.error(error);
+          return;
+        }
+      } catch (err) {
+        onToast('Failed to update status in backend.');
+        console.error(err);
+        return;
+      }
+    }
+
     const updated = quotes.map(q => q.id === id ? { ...q, status: 'Completed' } : q);
     localStorage.setItem('ep_quotes', JSON.stringify(updated));
     setQuotes(updated);
     onToast('Status updated to Completed.');
   };
 
-  const handleDeleteQuote = (id: string) => {
+  const handleDeleteQuote = async (id: string) => {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_quotes')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          onToast('Database error: Failed to delete quote.');
+          console.error(error);
+          return;
+        }
+      } catch (err) {
+        onToast('Failed to delete quote in backend.');
+        console.error(err);
+        return;
+      }
+    }
+
     const filtered = quotes.filter(q => q.id !== id);
     localStorage.setItem('ep_quotes', JSON.stringify(filtered));
     setQuotes(filtered);
     onToast('Quote Request deleted.');
   };
 
-  const handleMarkInquiryRead = (id: string) => {
+  const handleMarkInquiryRead = async (id: string) => {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_inquiries')
+          .update({ status: 'Read' })
+          .eq('id', id);
+        if (error) {
+          onToast('Database error: Failed to update inquiry status.');
+          console.error(error);
+          return;
+        }
+      } catch (err) {
+        onToast('Failed to update status in backend.');
+        console.error(err);
+        return;
+      }
+    }
+
     const updated = inquiries.map(i => i.id === id ? { ...i, status: 'Read' } : i);
     localStorage.setItem('ep_inquiries', JSON.stringify(updated));
     setInquiries(updated);
     onToast('Inquiry marked as read.');
   };
 
-  const handleDeleteInquiry = (id: string) => {
+  const handleDeleteInquiry = async (id: string) => {
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ep_inquiries')
+          .delete()
+          .eq('id', id);
+        if (error) {
+          onToast('Database error: Failed to delete inquiry.');
+          console.error(error);
+          return;
+        }
+      } catch (err) {
+        onToast('Failed to delete inquiry in backend.');
+        console.error(err);
+        return;
+      }
+    }
+
     const filtered = inquiries.filter(i => i.id !== id);
     localStorage.setItem('ep_inquiries', JSON.stringify(filtered));
     setInquiries(filtered);
