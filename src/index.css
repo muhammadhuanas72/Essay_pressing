@@ -3035,6 +3035,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: -8vh; /* Shift slightly up from center */
   will-change: transform, opacity;
 }
 
