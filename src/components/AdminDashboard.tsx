@@ -3,7 +3,6 @@ import {
   ShieldAlert, LogIn, LayoutDashboard, FileSpreadsheet, MessageSquare, 
   Settings, CheckCircle2, Trash2, LogOut, Save
 } from 'lucide-react';
-import { supabase } from '../utils/supabaseClient';
 
 
 interface AdminDashboardProps {
@@ -59,29 +58,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
     };
   }, [isOpen]);
 
-  // Load credentials from database if available
+  // Load credentials from shared database on modal open
   useEffect(() => {
     const fetchDbCredentials = async () => {
-      if (!supabase || !isOpen) return;
+      if (!isOpen) return;
       try {
-        const { data, error } = await supabase
-          .from('admin_settings')
-          .select('value')
-          .eq('key', 'admin_credentials')
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching admin credentials:', error);
-          return;
-        }
-
-        if (data && data.value) {
-          setAdminCreds({ user: data.value.user, pass: data.value.pass });
-        } else if (!data) {
-          // Initialize/seed settings table with default credentials
-          await supabase
-            .from('admin_settings')
-            .insert({ key: 'admin_credentials', value: { user: 'admin', pass: 'password123' } });
+        const response = await fetch('https://jsonblob.com/api/jsonBlob/019f6463-4ea7-7291-98a2-dd42a0e81ab9');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.user && data.pass) {
+            setAdminCreds({ user: data.user, pass: data.pass });
+          }
         }
       } catch (err) {
         console.error('Failed to load database credentials:', err);
@@ -98,12 +85,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
   };
 
   const getStoredCredentials = () => {
-    if (supabase) {
-      return adminCreds;
-    }
-    const storedUser = localStorage.getItem('ep_admin_user') || 'admin';
-    const storedPass = localStorage.getItem('ep_admin_pass') || 'password123';
-    return { user: storedUser, pass: storedPass };
+    return adminCreds;
   };
 
   if (!isOpen) return null;
@@ -128,26 +110,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
         return;
       }
       
-      if (supabase) {
-        try {
-          const { error } = await supabase
-            .from('admin_settings')
-            .upsert({ key: 'admin_credentials', value: { user: newUsernameInput, pass: newPasswordInput } });
+      try {
+        const response = await fetch('https://jsonblob.com/api/jsonBlob/019f6463-4ea7-7291-98a2-dd42a0e81ab9', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ user: newUsernameInput, pass: newPasswordInput }),
+        });
 
-          if (error) {
-            onToast('Database error: Failed to update credentials.');
-            console.error(error);
-            return;
-          }
-          setAdminCreds({ user: newUsernameInput, pass: newPasswordInput });
-        } catch (err) {
-          onToast('Failed to update credentials in backend database.');
-          console.error(err);
+        if (!response.ok) {
+          onToast('Database error: Failed to update credentials.');
           return;
         }
-      } else {
-        localStorage.setItem('ep_admin_user', newUsernameInput);
-        localStorage.setItem('ep_admin_pass', newPasswordInput);
+        setAdminCreds({ user: newUsernameInput, pass: newPasswordInput });
+      } catch (err) {
+        onToast('Failed to update credentials in backend database.');
+        console.error(err);
+        return;
       }
       
       onToast('Admin credentials updated successfully!');
