@@ -1,27 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon, Globe } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  onRequestQuote: () => void;
   isDark: boolean;
   setIsDark: (dark: boolean) => void;
   lang: 'en' | 'ta';
-  setLang: (lang: 'en' | 'ta') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   setCurrentTab,
-  onRequestQuote,
   isDark,
   setIsDark,
   lang,
-  setLang,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,6 +32,21 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
   const navItems = [
     { id: 'home', label: lang === 'en' ? 'Home' : 'முகப்பு' },
     { id: 'about', label: lang === 'en' ? 'About' : 'பற்றி' },
@@ -47,23 +59,31 @@ export const Navbar: React.FC<NavbarProps> = ({
   const handleNavClick = (id: string) => {
     setIsMenuOpen(false);
     setCurrentTab(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 80;
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
-      const offsetPosition = elementPosition - offset;
+    
+    setTimeout(() => {
+      const element = document.getElementById(id);
+      if (element) {
+        const offset = 80;
+        const bodyRect = document.body.getBoundingClientRect().top;
+        const elementRect = element.getBoundingClientRect().top;
+        const elementPosition = elementRect - bodyRect;
+        const offsetPosition = elementPosition - offset;
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      } else {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+    }, 80);
   };
 
   return (
-    <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
+    <nav ref={navRef} className={`navbar ${isScrolled || isMenuOpen ? 'scrolled' : ''}`}>
       <div className="container navbar-container">
         {/* Logo and Brand */}
         <a href="#home" className="logo-link" onClick={() => handleNavClick('home')}>
@@ -95,20 +115,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           ))}
         </div>
 
-        {/* Action buttons (Dark mode, Language selector, Request quote) */}
+        {/* Action buttons (Dark mode) */}
         <div className="nav-actions">
-          {/* Language Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Globe size={16} className="text-secondary" />
-            <select
-              className="lang-select"
-              value={lang}
-              onChange={(e) => setLang(e.target.value as 'en' | 'ta')}
-            >
-              <option value="en">EN</option>
-              <option value="ta">தமிழ்</option>
-            </select>
-          </div>
 
           {/* Dark Mode Toggle */}
           <button 
@@ -119,22 +127,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
-          {/* CTA Button */}
-          <button 
-            className="btn btn-primary" 
-            onClick={onRequestQuote}
-            style={{ fontSize: '13px', padding: '10px 18px' }}
-          >
-            {lang === 'en' ? 'Request Quote' : 'விண்ணப்பம்'}
-          </button>
-
           {/* Mobile Menu Toggle Button */}
           <button 
             className="icon-btn menu-toggle" 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle Menu"
           >
-            {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            <Menu size={20} />
           </button>
         </div>
       </div>

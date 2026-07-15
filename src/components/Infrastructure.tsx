@@ -139,7 +139,7 @@ export const Infrastructure: React.FC<InfrastructureProps> = ({ lang }) => {
         lang === 'en' ? 'palletized Dispatch Yards' : 'பல்லடைஸ் செய்யப்பட்ட விநியோக தளம்',
         lang === 'en' ? 'Road Freight Staging Area' : 'போக்குவரத்து வாகன ஏற்றுதல் பகுதி'
       ],
-      images: ['/storage_photo1.png', '/storage_photo2.png', '/storage_photo3.png'],
+      images: ['/storage_photo1.png', '/storage_photo3.png'],
       blueprint: (
         <svg viewBox="0 0 200 200" className="infra-visual-svg">
           <rect x="20" y="20" width="160" height="160" rx="12" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />

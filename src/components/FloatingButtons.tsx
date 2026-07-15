@@ -6,7 +6,7 @@ interface FloatingButtonsProps {
 }
 
 export const FloatingButtons: React.FC<FloatingButtonsProps> = ({ lang }) => {
-  const whatsappNumber = "+918047653363"; // Placeholder business contact
+  const whatsappNumber = "+919841733944"; // Business WhatsApp contact
 
   const getPhoneNumber = () => {
     const stored = localStorage.getItem('ep_contact_phone');

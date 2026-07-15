@@ -23,7 +23,7 @@
   --hero-badge-color: var(--accent);
   --hero-shape-border: rgba(15, 23, 42, 0.05);
   --hero-blend-gradient: linear-gradient(to right, #ffffff 40%, rgba(255, 255, 255, 0.92) 58%, rgba(255, 255, 255, 0.25) 80%, transparent 100%), linear-gradient(to top, #ffffff 0%, transparent 18%);
-  --hero-overlay-mobile: linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.96) 100%);
+  --hero-overlay-mobile: linear-gradient(to bottom, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.85) 100%);
 
   /* Fonts */
   --font-headings: 'Space Grotesk', sans-serif;
@@ -56,7 +56,7 @@
   --hero-badge-color: #60A5FA;
   --hero-shape-border: rgba(255, 255, 255, 0.05);
   --hero-blend-gradient: linear-gradient(to right, #0b0f19 40%, rgba(11, 15, 25, 0.92) 58%, rgba(11, 15, 25, 0.25) 80%, transparent 100%), linear-gradient(to top, #0b0f19 0%, transparent 18%);
-  --hero-overlay-mobile: linear-gradient(to bottom, rgba(11, 15, 25, 0.8) 0%, rgba(11, 15, 25, 0.96) 100%);
+  --hero-overlay-mobile: linear-gradient(to bottom, rgba(11, 15, 25, 0.55) 0%, rgba(11, 15, 25, 0.85) 100%);
 }
 
 /* Global Reset & Base */
@@ -361,48 +361,92 @@ textarea {
   border-color: var(--text-secondary);
 }
 
-.lang-select {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  cursor: pointer;
-  outline: none;
-  font-weight: 500;
-  transition: var(--transition-fast);
-}
-
-.lang-select:hover {
-  background-color: var(--card-bg);
-}
 
 .menu-toggle {
   display: none;
 }
 
-@media (max-width: 992px) {
+.mobile-quote-btn {
+  display: none;
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .navbar-container {
+    padding: 0 16px !important;
+  }
+
+  .nav-links {
+    gap: 8px;
+    padding-left: 16px;
+    margin-right: 16px !important;
+  }
+
+  .nav-link {
+    font-size: 12px;
+  }
+
+  .desktop-quote-btn {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .logo-image {
+    height: 36px !important;
+  }
+}
+
+@media (max-width: 768px) {
   .menu-toggle {
     display: flex;
   }
 
+  .desktop-quote-btn {
+    display: none;
+  }
+
+  .mobile-quote-btn {
+    display: block !important;
+    width: 100%;
+    margin-top: 12px;
+    background: linear-gradient(135deg, var(--accent) 0%, rgba(var(--accent-rgb), 0.8) 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 14px 20px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 14px 0 rgba(var(--accent-rgb), 0.25) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    text-align: center;
+  }
+
+  .mobile-quote-btn:active {
+    transform: scale(0.98) !important;
+    box-shadow: 0 2px 6px 0 rgba(var(--accent-rgb), 0.2) !important;
+  }
+
   .nav-links {
-    position: fixed;
-    top: 80px;
-    left: 0;
-    right: 0;
+    position: absolute;
+    top: 100%;
+    right: 0 !important;
+    margin-right: 0 !important;
+    left: auto;
+    width: 260px;
     background: var(--bg);
-    border-bottom: 1px solid var(--border-color);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-top: none;
+    border-right: none;
     flex-direction: column;
-    padding: 24px;
-    gap: 16px;
-    transform: translateY(-120%);
+    padding: 20px;
+    gap: 8px;
+    border-radius: 0 0 0 20px;
+    transform: translateY(-10px);
     opacity: 0;
     visibility: hidden;
-    transition: var(--transition-smooth);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
     z-index: 99;
-    box-shadow: var(--shadow-lg);
+    box-shadow: -10px 10px 20px -5px rgba(0, 0, 0, 0.1);
   }
 
   .nav-links.open {
@@ -411,8 +455,54 @@ textarea {
     visibility: visible;
   }
 
-  .navbar.scrolled .nav-links {
-    top: 70px;
+  .nav-links.open .nav-link {
+    animation: mobileMenuFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .nav-links.open .nav-link:nth-child(1) { animation-delay: 0.04s; }
+  .nav-links.open .nav-link:nth-child(2) { animation-delay: 0.08s; }
+  .nav-links.open .nav-link:nth-child(3) { animation-delay: 0.12s; }
+  .nav-links.open .nav-link:nth-child(4) { animation-delay: 0.16s; }
+  .nav-links.open .nav-link:nth-child(5) { animation-delay: 0.2s; }
+  .nav-links.open .nav-link:nth-child(6) { animation-delay: 0.24s; }
+
+  .nav-links.open .mobile-quote-btn {
+    animation: mobileMenuFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.28s;
+  }
+
+  @keyframes mobileMenuFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Removed scrolled positioning rule because top uses calc(100% + 8px) which responds to header height dynamically */
+
+  .nav-links .nav-link {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: var(--transition-fast);
+    opacity: 0;
+  }
+
+  .nav-links .nav-link::after {
+    display: none;
+  }
+
+  .nav-links .nav-link:hover,
+  .nav-links .nav-link.active {
+    background: rgba(var(--accent-rgb), 0.08);
+    color: var(--accent);
   }
 }
 
@@ -654,10 +744,10 @@ textarea {
 @media (max-width: 480px) {
   .hero-background-image {
     width: 100%;
-    opacity: 0.16;
+    opacity: 0.45;
   }
   .dark-theme .hero-background-image {
-    opacity: 0.11;
+    opacity: 0.35;
   }
   .hero-overlay-gradient {
     background: var(--hero-overlay-mobile);
@@ -1166,14 +1256,14 @@ textarea {
 
 @media (max-width: 1200px) {
   .products-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 18px;
   }
 }
 
 @media (max-width: 992px) {
   .products-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 }
@@ -1328,6 +1418,7 @@ textarea {
 .product-card-footer {
   display: flex;
   gap: 12px;
+  margin-top: auto;
 }
 
 /* Product Detail Modal */
