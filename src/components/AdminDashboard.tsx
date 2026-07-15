@@ -301,11 +301,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                 >
                   Change Admin Username / Password
                 </button>
-                <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
-                  {localStorage.getItem('ep_admin_user') 
-                    ? "Tip: Use your newly customized credentials." 
-                    : <>Tip: Demo credentials are <strong style={{ color: 'var(--accent)' }}>admin / password123</strong></>}
-                </div>
+
               </div>
             </form>
           )}
